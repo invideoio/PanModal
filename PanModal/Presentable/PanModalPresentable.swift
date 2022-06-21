@@ -233,5 +233,15 @@ public protocol PanModalPresentable: AnyObject {
      Default value is an empty implementation.
      */
     func panModalDidDismiss()
+
+    /**
+     Specifies the blur surface style
+     */
+    var blurSurface: UIBlurEffect.Style? { get }
+
+    /**
+     Specifies the blur surface background color
+     */
+    var blurSurfaceBackgroundColor: UIColor? { get }
 }
 #endif

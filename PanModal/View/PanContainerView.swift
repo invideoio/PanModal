@@ -39,6 +39,5 @@ extension UIView {
             view is PanContainerView
         }) as? PanContainerView
     }
-
 }
 #endif

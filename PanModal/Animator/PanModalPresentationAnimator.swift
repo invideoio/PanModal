@@ -79,10 +79,15 @@ public class PanModalPresentationAnimator: NSObject {
 
         // Use panView as presentingView if it already exists within the containerView
         let panView: UIView = transitionContext.containerView.panContainerView ?? toVC.view
+        let blurView = transitionContext.containerView.blurView
 
         // Move presented view offscreen (from the bottom)
         panView.frame = transitionContext.finalFrame(for: toVC)
         panView.frame.origin.y = transitionContext.containerView.frame.height
+
+        blurView?.frame = transitionContext.finalFrame(for: toVC)
+        blurView?.frame.origin.y = transitionContext.containerView.frame.height
+
 
         // Haptic feedback
         if presentable?.isHapticFeedbackEnabled == true {
@@ -91,6 +96,7 @@ public class PanModalPresentationAnimator: NSObject {
 
         PanModalAnimator.animate({
             panView.frame.origin.y = yPos
+            blurView?.frame.origin.y = yPos
         }, config: presentable) { [weak self] didComplete in
             // Calls viewDidAppear and viewDidDisappear
             fromVC.endAppearanceTransition()
@@ -114,9 +120,10 @@ public class PanModalPresentationAnimator: NSObject {
         
         let presentable = panModalLayoutType(from: transitionContext)
         let panView: UIView = transitionContext.containerView.panContainerView ?? fromVC.view
-
+        let blurView = transitionContext.containerView.blurView
         PanModalAnimator.animate({
             panView.frame.origin.y = transitionContext.containerView.frame.height
+            blurView?.frame.origin.y = transitionContext.containerView.frame.height
         }, config: presentable) { didComplete in
             fromVC.view.removeFromSuperview()
             // Calls viewDidAppear and viewDidDisappear

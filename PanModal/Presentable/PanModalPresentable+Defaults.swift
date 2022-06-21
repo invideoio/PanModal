@@ -124,5 +124,9 @@ public extension PanModalPresentable where Self: UIViewController {
     func panModalDidDismiss() {
 
     }
+
+    var blurSurface: UIBlurEffect.Style? { nil }
+
+    var blurSurfaceBackgroundColor: UIColor? { nil }
 }
 #endif

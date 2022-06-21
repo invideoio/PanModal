@@ -120,6 +120,18 @@ open class PanModalPresentationController: UIPresentationController {
     }()
 
     /**
+     Blur view used as an overlay over the presenting view
+     */
+    private lazy var blurView: PanBlurView = {
+        guard let style = presentable?.blurSurface else {
+            return PanBlurView()
+        }
+
+        let blurEffect = UIBlurEffect(style: style)
+        return PanBlurView(effect: blurEffect)
+    }()
+
+    /**
      A wrapper around the presented view so that we can modify
      the presented view apperance without changing
      the presented view's properties
@@ -178,16 +190,19 @@ open class PanModalPresentationController: UIPresentationController {
             else { return }
 
         layoutBackgroundView(in: containerView)
+        layoutBlurView(in: containerView)
         layoutPresentedView(in: containerView)
         configureScrollViewInsets()
 
         guard let coordinator = presentedViewController.transitionCoordinator else {
             backgroundView.dimState = .max
+            backgroundView.alpha = 1.0
             return
         }
 
         coordinator.animate(alongsideTransition: { [weak self] _ in
             self?.backgroundView.dimState = .max
+            self?.blurView.alpha = 1.0
             self?.presentedViewController.setNeedsStatusBarAppearanceUpdate()
         })
     }
@@ -236,6 +251,7 @@ open class PanModalPresentationController: UIPresentationController {
                 else { return }
 
             self.adjustPresentedViewFrame()
+            self.adjustBlurViewFrame()
             if presentable.shouldRoundTopCorners {
                 self.addRoundedCorners(to: self.presentedView)
             }
@@ -302,6 +318,7 @@ public extension PanModalPresentationController {
     func setNeedsLayoutUpdate() {
         configureViewLayout()
         adjustPresentedViewFrame()
+        adjustBlurViewFrame()
         observe(scrollView: presentable?.panScrollable)
         configureScrollViewInsets()
     }
@@ -381,6 +398,22 @@ private extension PanModalPresentationController {
         presentedViewController.view.frame = CGRect(origin: .zero, size: adjustedSize)
     }
 
+    func adjustBlurViewFrame() {
+
+        guard let frame = containerView?.frame
+            else { return }
+
+        let blurFrame = blurView.frame
+        blurView.frame.size = frame.size
+        if ![shortFormYPosition, longFormYPosition].contains(blurFrame.origin.y) {
+            // if the container is already in the correct position, no need to adjust positioning
+            // (rotations & size changes cause positioning to be out of sync)
+            let yPosition = blurFrame.origin.y - blurFrame.height + frame.height
+            blurView.frame.origin.y = max(yPosition, anchoredYPosition)
+        }
+        blurView.frame.origin.x = frame.origin.x
+    }
+
     /**
      Adds a background color to the pan container view
      in order to avoid a gap at the bottom
@@ -402,6 +435,24 @@ private extension PanModalPresentationController {
         backgroundView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor).isActive = true
         backgroundView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor).isActive = true
         backgroundView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor).isActive = true
+    }
+
+    /**
+     Adds the blur view to the view hierarchy
+     & configures its layout constraints.
+     */
+    func layoutBlurView(in containerView: UIView) {
+
+        guard let presentable = presentable
+            else { return }
+        containerView.insertSubview(blurView, aboveSubview: backgroundView)
+        if presentable.shouldRoundTopCorners {
+            blurView.layer.masksToBounds = true
+            blurView.layer.cornerRadius = presentable.cornerRadius
+            if #available(iOS 11.0, *) {
+                blurView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            }
+        }
     }
 
     /**
@@ -653,7 +704,8 @@ private extension PanModalPresentationController {
      */
     func adjust(toYPosition yPos: CGFloat) {
         presentedView.frame.origin.y = max(yPos, anchoredYPosition)
-        
+        blurView.frame.origin.y = max(yPos, anchoredYPosition)
+
         guard presentedView.frame.origin.y > shortFormYPosition else {
             backgroundView.dimState = .max
             return
